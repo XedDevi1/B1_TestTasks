@@ -32,17 +32,17 @@ namespace B1_TestTask_1
                 switch (input)
                 {
                     case "1":
-                        await StringGeneratorService.WriteToFileLoopAsync(path); // Запись строк в файлы
+                        await DataManagerService.WriteToFileLoopAsync(path); // Запись строк в файлы
                         break;
                     case "2":
                         string? inputString = Console.ReadLine(); // Чтение строки для удаления
-                        await StringGeneratorService.MergeAllFiles(path, inputString); // Объединение файлов
+                        await DataManagerService.MergeAllFiles(path, inputString); // Объединение файлов
                         break;
                     case "3":
-                        await StringGeneratorService.ImportMergedFileToDatabase(path); // Импорт объединенного файла в базу данных
+                        await DataManagerService.ImportMergedFileToDatabase(path); // Импорт объединенного файла в базу данных
                         break;
                     case "4":
-                        await StringGeneratorService.ProcessCalculationResult(); // Обработка результатов вычислений
+                        await DataManagerService.ProcessCalculationResult(); // Обработка результатов вычислений
                         break;
                     case "5":
                         Console.WriteLine("Exiting the program."); // Выход из программы

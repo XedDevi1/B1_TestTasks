@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace B1_TestTask_1.Services
 {
-    public static class StringGeneratorService
+    public static class DataManagerService
     {
         private static readonly ThreadLocal<Random> _random = new ThreadLocal<Random>(() => new Random());
         private const string LatinAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -66,7 +66,7 @@ namespace B1_TestTask_1.Services
             // Генерация строк и добавление их в соответствующие очереди
             Parallel.For(0, 10000000, j =>
             {
-                string line = StringGeneratorService.GenerateString();
+                string line = DataManagerService.GenerateString();
                 int fileIndex = j % 100;
                 queues[fileIndex].Enqueue(line);
             });
