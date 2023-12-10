@@ -11,75 +11,68 @@ using System.Threading.Tasks;
 
 namespace B1_TestTask_2.Services
 {
-    // Класс для импорта данных из Excel файла в базу данных.
     public class ExcelImportService
     {
-        // Метод для вставки данных из Excel файла в базу данных.
         public static void InsertExcelDataToDatabase(string excelPath, AppDbContext context)
         {
-            // Создание нового пакета Excel.
+            // Создаем объект файла и добавляем его в контекст
+            var file = new Files
+            {
+                FileName = Path.GetFileName(excelPath) // Получаем название файла из пути
+            };
+            context.Files.Add(file); // Добавляем файл в контекст
+            context.SaveChanges(); // Сохраняем изменения, чтобы получить Id для файла
+
+            // Загружаем данные из Excel файла
             using (var package = new ExcelPackage())
             {
-                // Открытие файла Excel для чтения.
                 using (var stream = File.OpenRead(excelPath))
                 {
-                    // Загрузка данных из файла в пакет.
                     package.Load(stream);
                 }
-                // Получение рабочего листа с именем "Sheet1".
                 var ws = package.Workbook.Worksheets["Sheet1"];
 
-                // Переменная для хранения текущего класса.
                 Classes currentClass = null;
-                // Словарь для хранения групп счетов.
                 Dictionary<int, AccountGroups> accountGroupsDict = new Dictionary<int, AccountGroups>();
 
-                // Перебор строк с 9-й по последнюю в рабочем листе.
+                // Итерируем по строкам в Excel
                 for (int rowNum = 9; rowNum <= ws.Dimension.End.Row; rowNum++)
                 {
-                    // Получение значения первой ячейки в строке и удаление пробелов.
                     var firstCellValue = ws.Cells[rowNum, 1].Text.Trim();
 
-                    // Проверка, начинается ли значение ячейки с "КЛАСС".
+                    // Если первая ячейка начинается с "КЛАСС", создаем новый объект класса
                     if (firstCellValue.StartsWith("КЛАСС"))
                     {
-                        // Создание и добавление нового класса в контекст базы данных.
                         currentClass = new Classes
                         {
-                            ClassName = firstCellValue
+                            ClassName = firstCellValue,
+                            FileId = file.Id
                         };
                         context.Classes.Add(currentClass);
-                        // Сохранение изменений в базе данных.
                         context.SaveChanges();
                     }
                     else
                     {
-                        // Переменная для хранения номера счета.
                         int accountNumber;
-                        // Попытка преобразования значения ячейки в число и проверка, что оно больше или равно 1000.
+                        // Если первая ячейка представляет собой число и оно больше 1000
                         if (int.TryParse(firstCellValue, out accountNumber) && accountNumber >= 1000)
                         {
-                            // Вычисление ключа группы счетов.
                             int accountGroupKey = accountNumber / 100;
 
-                            // Переменная для хранения группы счетов.
                             AccountGroups accountGroup;
-                            // Проверка наличия группы счетов в словаре.
+                            // Если группа с таким ключом уже существует, используем ее, иначе создаем новую
                             if (!accountGroupsDict.TryGetValue(accountGroupKey, out accountGroup))
                             {
-                                // Создание и добавление новой группы счетов в контекст базы данных.
                                 accountGroup = new AccountGroups
                                 {
                                     AccountGroup = accountGroupKey
                                 };
                                 context.AccountGroups.Add(accountGroup);
-                                // Сохранение изменений в базе данных.
                                 context.SaveChanges();
-                                // Добавление группы счетов в словарь.
                                 accountGroupsDict[accountGroupKey] = accountGroup;
                             }
 
-                            // Создание деталей счета с преобразованием значений из ячеек в числа с учетом региональных настроек.
+                            // Создаем объект деталей счета и объект счета
                             var accountDetails = new AccountDetails
                             {
                                 ActiveOpeningBalance = decimal.Parse(ws.Cells[rowNum, 2].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
@@ -90,7 +83,6 @@ namespace B1_TestTask_2.Services
                                 PassiveClosingBalance = decimal.Parse(ws.Cells[rowNum, 7].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
                             };
 
-                            // Создание и добавление нового счета в контекст базы данных.
                             var account = new Accounts
                             {
                                 AccountNumber = accountNumber,
@@ -101,16 +93,21 @@ namespace B1_TestTask_2.Services
 
                             context.Accounts.Add(account);
                         }
-                        // Пропуск строки, если значение ячейки не соответствует ожидаемому формату.
+                        // Если первая ячейка содержит две цифры, или "ПО КЛАССУ", или "БАЛАНС", игнорируем строку
                         else if (firstCellValue.Length == 2 || firstCellValue == "ПО КЛАССУ" || firstCellValue == "БАЛАНС")
                         {
                             continue;
                         }
                     }
                 }
-                // Сохранение всех изменений в базе данных.
                 context.SaveChanges();
             }
+        }
+
+        // Проверка наличия файла в базе данных по его имени
+        public static bool FileExistsInDatabase(string fileName, AppDbContext context)
+        {
+            return context.Files.Any(f => f.FileName == fileName);
         }
     }
 }

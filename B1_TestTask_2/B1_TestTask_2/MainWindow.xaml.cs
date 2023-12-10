@@ -3,6 +3,7 @@ using B1_TestTask_2.Services;
 using OfficeOpenXml;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,15 +17,23 @@ using System.Windows.Shapes;
 
 namespace B1_TestTask_2
 {
-    // Основной класс окна приложения.
     public partial class MainWindow : Window
     {
+        [DllImport("Kernel32")]
+        public static extern void AllocConsole();
+
+        [DllImport("Kernel32")]
+        public static extern void FreeConsole();
+
         // Коллекция для хранения информации о файлах Excel.
         public ObservableCollection<FileInfo> ExcelFiles { get; set; }
 
         // Конструктор основного окна.
         public MainWindow()
         {
+
+            AllocConsole();
+
             // Инициализация компонентов окна.
             InitializeComponent();
             // Установка лицензионного контекста для ExcelPackage.
@@ -56,26 +65,25 @@ namespace B1_TestTask_2
         // Обработчик события двойного клика мыши по элементу ListView.
         private void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            // Проверка выбранного элемента в ListView.
             if (FilesListView.SelectedItem is FileInfo selectedFile)
             {
-                // Получение полного пути к выбранному файлу Excel.
                 string excelPath = selectedFile.FullName;
+                string fileName = System.IO.Path.GetFileName(excelPath);
 
-                // Создание контекста базы данных.
                 using (var context = new AppDbContext())
                 {
-                    // Проверка наличия записей в таблице Accounts.
-                    if (!context.Accounts.Any())
+                    // Проверяем, существует ли файл в базе данных.
+                    var fileInDb = context.Files.FirstOrDefault(f => f.FileName == fileName);
+                    if (fileInDb == null)
                     {
-                        // Вставка данных из Excel файла в базу данных.
+                        // Если файла нет, добавляем данные из Excel в базу данных.
                         ExcelImportService.InsertExcelDataToDatabase(excelPath, context);
                     }
+                    // Файл уже существует в базе данных, или только что был добавлен.
+                    // Открываем окно для отображения данных.
+                    DataDisplayWindow dataDisplayWindow = new DataDisplayWindow();
+                    dataDisplayWindow.Show();
                 }
-
-                // Создание и отображение окна для отображения данных.
-                DataDisplayWindow dataDisplayWindow = new DataDisplayWindow();
-                dataDisplayWindow.Show();
             }
         }
     }

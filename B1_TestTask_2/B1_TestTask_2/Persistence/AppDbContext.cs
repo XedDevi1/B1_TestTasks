@@ -12,10 +12,11 @@ namespace B1_TestTask_2.Persistence
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<AccountDetails> AccauntDetails { get; set; }
+        public DbSet<AccountDetails> AccountDetails { get; set; }
         public DbSet<Classes> Classes { get; set; }
         public DbSet<Accounts> Accounts { get; set; }
         public DbSet<AccountGroups> AccountGroups { get; set; }
+        public DbSet<Files> Files { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -29,6 +30,7 @@ namespace B1_TestTask_2.Persistence
             modelBuilder.Entity<AccountGroups>().HasKey(ag => ag.Id);
             modelBuilder.Entity<Accounts>().HasKey(a => a.Id);
             modelBuilder.Entity<Classes>().HasKey(c => c.ClassNumber);
+            modelBuilder.Entity<Files>().HasKey(f => f.Id);
 
             modelBuilder.Entity<Accounts>()
                 .HasOne(a => a.AccountDetails)
@@ -44,6 +46,11 @@ namespace B1_TestTask_2.Persistence
                 .HasMany(c => c.Accounts)
                 .WithOne(a => a.Class)
                 .HasForeignKey(a => a.ClassId);
+
+            modelBuilder.Entity<Files>()
+                .HasMany(c => c.Classes)
+                .WithOne(a => a.File)
+                .HasForeignKey(a => a.FileId);
 
             modelBuilder.Entity<AccountDetails>()
                 .Property(ad => ad.ActiveOpeningBalance)

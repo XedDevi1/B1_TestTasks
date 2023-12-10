@@ -13,6 +13,8 @@ namespace B1_TestTask_2.Models
         public int ClassNumber { get; set; }
         public string ClassName { get; set; }
 
+        public int FileId { get; set; }
+        public Files File { get; set; }
         public ICollection<Accounts> Accounts { get; set; }
     }
 }

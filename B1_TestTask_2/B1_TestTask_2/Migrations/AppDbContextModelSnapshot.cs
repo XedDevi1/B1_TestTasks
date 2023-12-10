@@ -46,7 +46,7 @@ namespace B1_TestTask_2.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AccauntDetails");
+                    b.ToTable("AccountDetails");
                 });
 
             modelBuilder.Entity("B1_TestTask_2.Models.AccountGroups", b =>
@@ -103,9 +103,31 @@ namespace B1_TestTask_2.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("FileId")
+                        .HasColumnType("int");
+
                     b.HasKey("ClassNumber");
 
+                    b.HasIndex("FileId");
+
                     b.ToTable("Classes");
+                });
+
+            modelBuilder.Entity("B1_TestTask_2.Models.Files", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Files");
                 });
 
             modelBuilder.Entity("B1_TestTask_2.Models.AccountDetails", b =>
@@ -138,6 +160,17 @@ namespace B1_TestTask_2.Migrations
                     b.Navigation("Class");
                 });
 
+            modelBuilder.Entity("B1_TestTask_2.Models.Classes", b =>
+                {
+                    b.HasOne("B1_TestTask_2.Models.Files", "File")
+                        .WithMany("Classes")
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("File");
+                });
+
             modelBuilder.Entity("B1_TestTask_2.Models.AccountGroups", b =>
                 {
                     b.Navigation("Accounts");
@@ -152,6 +185,11 @@ namespace B1_TestTask_2.Migrations
             modelBuilder.Entity("B1_TestTask_2.Models.Classes", b =>
                 {
                     b.Navigation("Accounts");
+                });
+
+            modelBuilder.Entity("B1_TestTask_2.Models.Files", b =>
+                {
+                    b.Navigation("Classes");
                 });
 #pragma warning restore 612, 618
         }

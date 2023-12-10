@@ -5,7 +5,7 @@
 namespace B1_TestTask_2.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,16 +24,36 @@ namespace B1_TestTask_2.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Files",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Files", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Classes",
                 columns: table => new
                 {
                     ClassNumber = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ClassName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    ClassName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Classes", x => x.ClassNumber);
+                    table.ForeignKey(
+                        name: "FK_Classes_Files_FileId",
+                        column: x => x.FileId,
+                        principalTable: "Files",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -64,7 +84,7 @@ namespace B1_TestTask_2.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AccauntDetails",
+                name: "AccountDetails",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false),
@@ -77,9 +97,9 @@ namespace B1_TestTask_2.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AccauntDetails", x => x.Id);
+                    table.PrimaryKey("PK_AccountDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AccauntDetails_Accounts_Id",
+                        name: "FK_AccountDetails_Accounts_Id",
                         column: x => x.Id,
                         principalTable: "Accounts",
                         principalColumn: "Id",
@@ -95,13 +115,18 @@ namespace B1_TestTask_2.Migrations
                 name: "IX_Accounts_ClassId",
                 table: "Accounts",
                 column: "ClassId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Classes_FileId",
+                table: "Classes",
+                column: "FileId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AccauntDetails");
+                name: "AccountDetails");
 
             migrationBuilder.DropTable(
                 name: "Accounts");
@@ -111,6 +136,9 @@ namespace B1_TestTask_2.Migrations
 
             migrationBuilder.DropTable(
                 name: "Classes");
+
+            migrationBuilder.DropTable(
+                name: "Files");
         }
     }
 }
