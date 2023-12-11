@@ -9,30 +9,32 @@ using B1_TestTask_2.ViewModels;
 
 namespace B1_TestTask_2.Services
 {
-    // Класс для выбора шаблона отображения в зависимости от типа данных.
     public class ClassHeaderTemplateSelector : DataTemplateSelector
     {
-        // Шаблон для заголовка класса.
+        // Шаблон для заголовка класса
         public DataTemplate ClassHeaderTemplate { get; set; }
-        // Обычный шаблон для элементов, не являющихся заголовками класса.
+
+        // Обычный шаблон для отображения данных
         public DataTemplate NormalTemplate { get; set; }
 
-        // Метод для выбора шаблона на основе переданного объекта.
+        // Переопределение метода выбора шаблона для элемента
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
-            // Приведение объекта к типу AccountDisplayModel.
+            // Преобразование объекта в модель отображения счета
             var record = item as AccountDisplayModel;
-            // Если объект не null и помечен как заголовок класса, используем ClassHeaderTemplate.
+
+            // Проверка, является ли элемент заголовком класса
             if (record != null && record.IsClassHeader)
             {
+                // Возврат шаблона для заголовка класса
                 return ClassHeaderTemplate;
             }
-            // В противном случае используем NormalTemplate.
             else
             {
+                // Возврат обычного шаблона для отображения данных
                 return NormalTemplate;
             }
         }
-    }
 
+    }
 }

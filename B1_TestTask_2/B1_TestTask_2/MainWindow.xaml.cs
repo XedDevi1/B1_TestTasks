@@ -78,13 +78,22 @@ namespace B1_TestTask_2
                     {
                         // Если файла нет, добавляем данные из Excel в базу данных.
                         ExcelImportService.InsertExcelDataToDatabase(excelPath, context);
+                        // Обновляем контекст, чтобы получить Id только что добавленного файла.
+                        context.SaveChanges();
+                        // Получаем Id добавленного файла.
+                        fileInDb = context.Files.FirstOrDefault(f => f.FileName == fileName);
                     }
-                    // Файл уже существует в базе данных, или только что был добавлен.
-                    // Открываем окно для отображения данных.
-                    DataDisplayWindow dataDisplayWindow = new DataDisplayWindow();
-                    dataDisplayWindow.Show();
+                    // Если файл найден или только что был добавлен, получаем его Id.
+                    var fileId = fileInDb?.Id; // fileId будет содержать Id файла или null, если файл не найден.
+                    if (fileId.HasValue)
+                    {
+                        // Открываем окно для отображения данных.
+                        DataDisplayWindow dataDisplayWindow = new DataDisplayWindow(fileId.Value);
+                        dataDisplayWindow.Show();
+                    }
                 }
             }
         }
+
     }
 }

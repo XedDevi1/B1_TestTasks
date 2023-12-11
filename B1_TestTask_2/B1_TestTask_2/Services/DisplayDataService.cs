@@ -1,6 +1,7 @@
 ﻿using B1_TestTask_2.Persistence;
 using B1_TestTask_2.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Syncfusion.UI.Xaml.Grid;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,38 +10,46 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using System.Windows.Threading;
+using System.Xml;
 
 namespace B1_TestTask_2.Services
 {
-    // Класс для управления отображением данных счетов.
     public class DisplayDataService
     {
-        // Источник данных для представления счетов.
         public CollectionViewSource AccountsViewSource { get; set; }
+        public SfDataGrid DataGrid { get; set; }
 
-        // Конструктор класса, инициализирующий источник данных и загружающий данные из базы данных.
-        public DisplayDataService()
+        // Конструктор для DisplayDataService
+        public DisplayDataService(int fileId, SfDataGrid dataGrid)
         {
             AccountsViewSource = new CollectionViewSource();
-            LoadDataFromDatabase();
+            DataGrid = dataGrid;
+            LoadDataFromDatabase(fileId);
         }
 
-        // Метод для загрузки данных из базы данных.
-        private void LoadDataFromDatabase()
+        // Загрузка данных из базы данных и заполнение SfDataGrid
+        private void LoadDataFromDatabase(int fileId)
         {
-            // Создание контекста базы данных.
             using (var context = new AppDbContext())
             {
-                // Получение списка счетов с подробностями, классами и группами счетов.
+                Console.WriteLine("Создание контекста базы данных...");
+
+                // Получение информации о файле из базы данных
+                var fileInDb = context.Files.FirstOrDefault(f => f.Id == fileId);
+
+                // Получение данных по счетам с соответствующими связанными сущностями из базы данных
                 var accounts = context.Accounts
                     .Include(a => a.AccountDetails)
                     .Include(a => a.Class)
                     .Include(a => a.AccountGroups)
+                    .Where(a => a.Class.FileId == fileId)
                     .ToList();
 
-                // Преобразование списка счетов в список моделей отображения счетов.
+                // Преобразование данных по счетам в модели отображения
                 var accountDisplayModels = accounts.Select(account => new AccountDisplayModel
                 {
+                    // Отображение свойств счета на свойства модели отображения
                     AccountNumber = account.AccountNumber,
                     ClassName = account.Class.ClassName,
                     AccountGroup = account.AccountGroups.AccountGroup,
@@ -52,27 +61,30 @@ namespace B1_TestTask_2.Services
                     PassiveClosingBalance = account.AccountDetails.PassiveClosingBalance,
                     IsGroupSummary = false,
                     IsClassSummary = false,
-                    DisplayText = account.AccountNumber.ToString()
+                    DisplayText = account.AccountNumber.ToString(),
+
+                    // Дополнительные свойства
+                    // ...
                 }).ToList();
 
-                // Список для хранения обработанных данных для отображения.
                 var displayData = new List<AccountDisplayModel>();
 
-                // Группировка моделей отображения счетов по названию класса и их сортировка.
+                // Группировка и суммирование моделей отображения счетов
                 foreach (var classGroup in accountDisplayModels.GroupBy(a => a.ClassName).OrderBy(g => g.Key))
                 {
-                    // Добавление заголовка класса.
+                    // Добавление заголовка класса
                     displayData.Add(new AccountDisplayModel { DisplayText = classGroup.Key, IsClassHeader = true });
 
-                    // Группировка счетов по группе счетов и их сортировка.
+                    // Перебор групп счетов внутри класса
                     foreach (var group in classGroup.GroupBy(a => a.AccountGroup).OrderBy(g => g.Key))
                     {
-                        // Добавление счетов в отображаемые данные.
+                        // Добавление отдельных счетов
                         displayData.AddRange(group.OrderBy(a => a.AccountNumber));
 
-                        // Создание и добавление сводки по группе счетов.
+                        // Добавление суммарной информации по группе счетов
                         var groupSummary = new AccountDisplayModel
                         {
+                            // Заполнение свойств суммарной информации по группе
                             DisplayText = $"{group.Key}",
                             ActiveOpeningBalance = group.Sum(a => a.ActiveOpeningBalance),
                             PassiveOpeningBalance = group.Sum(a => a.PassiveOpeningBalance),
@@ -80,14 +92,19 @@ namespace B1_TestTask_2.Services
                             LoanTurnover = group.Sum(a => a.LoanTurnover),
                             ActiveClosingBalance = group.Sum(a => a.ActiveClosingBalance),
                             PassiveClosingBalance = group.Sum(a => a.PassiveClosingBalance),
-                            IsGroupSummary = true
+                            IsGroupSummary = true,
+
+                            // Дополнительные свойства
+                            // ...
                         };
+
                         displayData.Add(groupSummary);
                     }
 
-                    // Создание и добавление сводки по классу счетов.
+                    // Добавление суммарной информации по классу
                     var classSummary = new AccountDisplayModel
                     {
+                        // Заполнение свойств суммарной информации по классу
                         DisplayText = "ПО КЛАССУ",
                         ActiveOpeningBalance = classGroup.Sum(a => a.ActiveOpeningBalance),
                         PassiveOpeningBalance = classGroup.Sum(a => a.PassiveOpeningBalance),
@@ -95,15 +112,67 @@ namespace B1_TestTask_2.Services
                         LoanTurnover = classGroup.Sum(a => a.LoanTurnover),
                         ActiveClosingBalance = classGroup.Sum(a => a.ActiveClosingBalance),
                         PassiveClosingBalance = classGroup.Sum(a => a.PassiveClosingBalance),
-                        IsClassSummary = true
+                        IsClassSummary = true,
+
+                        // Дополнительные свойства
+                        // ...
                     };
+
                     displayData.Add(classSummary);
                 }
 
-                // Установка источника данных для представления счетов.
+                // Подписка на событие QueryCoveredRange для настройки обработки
+                DataGrid.QueryCoveredRange += sfDataGrid_QueryCoveredRange;
+
+                // Установка данных отображения в качестве источника для CollectionViewSource
                 AccountsViewSource.Source = displayData;
             }
         }
-    }
 
+        // Настройка обработки события QueryCoveredRange в SfDataGrid
+        private void sfDataGrid_QueryCoveredRange(object sender, GridQueryCoveredRangeEventArgs e)
+        {
+            var dataGrid = sender as SfDataGrid;
+
+            if (dataGrid == null)
+            {
+                Console.WriteLine("SfDataGrid не найден.");
+                return;
+            }
+
+            var recordIndex = dataGrid.ResolveToRecordIndex(e.RowColumnIndex.RowIndex);
+
+            if (recordIndex < 0)
+            {
+                Console.WriteLine($"Не удалось разрешить индекс записи для строки: {e.RowColumnIndex.RowIndex}");
+                return;
+            }
+
+            var record = dataGrid.View.Records[recordIndex].Data as AccountDisplayModel;
+
+            if (record != null)
+            {
+                // Проверка, является ли запись заголовком класса
+                if (record.DisplayText != null && (record.DisplayText.StartsWith("КЛАСС") || record.IsClassHeader))
+                {
+                    // Покрытие всей строки для заголовка класса
+                    int startColumnIndex = 1;
+                    int endColumnIndex = dataGrid.Columns.Count;
+
+                    e.Range = new CoveredCellInfo(e.RowColumnIndex.RowIndex, startColumnIndex, e.RowColumnIndex.RowIndex, endColumnIndex);
+                    e.Handled = true;
+                }
+                else
+                {
+                    // Обработка других случаев при необходимости
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine();
+            }
+        }
+
+    }
 }
