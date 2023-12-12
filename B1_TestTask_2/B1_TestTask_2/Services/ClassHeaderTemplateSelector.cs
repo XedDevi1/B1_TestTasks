@@ -35,6 +35,5 @@ namespace B1_TestTask_2.Services
                 return NormalTemplate;
             }
         }
-
     }
 }

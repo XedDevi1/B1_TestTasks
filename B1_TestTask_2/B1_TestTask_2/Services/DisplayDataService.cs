@@ -33,8 +33,6 @@ namespace B1_TestTask_2.Services
         {
             using (var context = new AppDbContext())
             {
-                Console.WriteLine("Создание контекста базы данных...");
-
                 // Получение информации о файле из базы данных
                 var fileInDb = context.Files.FirstOrDefault(f => f.Id == fileId);
 
@@ -62,9 +60,6 @@ namespace B1_TestTask_2.Services
                     IsGroupSummary = false,
                     IsClassSummary = false,
                     DisplayText = account.AccountNumber.ToString(),
-
-                    // Дополнительные свойства
-                    // ...
                 }).ToList();
 
                 var displayData = new List<AccountDisplayModel>();
@@ -93,9 +88,6 @@ namespace B1_TestTask_2.Services
                             ActiveClosingBalance = group.Sum(a => a.ActiveClosingBalance),
                             PassiveClosingBalance = group.Sum(a => a.PassiveClosingBalance),
                             IsGroupSummary = true,
-
-                            // Дополнительные свойства
-                            // ...
                         };
 
                         displayData.Add(groupSummary);
@@ -113,9 +105,6 @@ namespace B1_TestTask_2.Services
                         ActiveClosingBalance = classGroup.Sum(a => a.ActiveClosingBalance),
                         PassiveClosingBalance = classGroup.Sum(a => a.PassiveClosingBalance),
                         IsClassSummary = true,
-
-                        // Дополнительные свойства
-                        // ...
                     };
 
                     displayData.Add(classSummary);
