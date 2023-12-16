@@ -19,22 +19,11 @@ namespace B1_TestTask_2
 {
     public partial class MainWindow : Window
     {
-        [DllImport("Kernel32")]
-        public static extern void AllocConsole();
-
-        [DllImport("Kernel32")]
-        public static extern void FreeConsole();
-
-        // Коллекция для хранения информации о файлах Excel.
+        // Коллекция для хранения информации о файлах Excel
         public ObservableCollection<FileInfo> ExcelFiles { get; set; }
 
-        // Конструктор основного окна.
         public MainWindow()
         {
-
-            AllocConsole();
-
-            // Инициализация компонентов окна.
             InitializeComponent();
             // Установка лицензионного контекста для ExcelPackage.
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -62,7 +51,6 @@ namespace B1_TestTask_2
             }
         }
 
-        // Обработчик события двойного клика мыши по элементу ListView.
         private void FilesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (FilesListView.SelectedItem is FileInfo selectedFile)
@@ -94,6 +82,5 @@ namespace B1_TestTask_2
                 }
             }
         }
-
     }
 }

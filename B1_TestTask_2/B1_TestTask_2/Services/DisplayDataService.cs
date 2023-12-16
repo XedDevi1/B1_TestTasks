@@ -109,59 +109,9 @@ namespace B1_TestTask_2.Services
 
                     displayData.Add(classSummary);
                 }
-
-                // Подписка на событие QueryCoveredRange для настройки обработки
-                DataGrid.QueryCoveredRange += sfDataGrid_QueryCoveredRange;
-
                 // Установка данных отображения в качестве источника для CollectionViewSource
                 AccountsViewSource.Source = displayData;
             }
         }
-
-        // Настройка обработки события QueryCoveredRange в SfDataGrid
-        private void sfDataGrid_QueryCoveredRange(object sender, GridQueryCoveredRangeEventArgs e)
-        {
-            var dataGrid = sender as SfDataGrid;
-
-            if (dataGrid == null)
-            {
-                Console.WriteLine("SfDataGrid не найден.");
-                return;
-            }
-
-            var recordIndex = dataGrid.ResolveToRecordIndex(e.RowColumnIndex.RowIndex);
-
-            if (recordIndex < 0)
-            {
-                Console.WriteLine($"Не удалось разрешить индекс записи для строки: {e.RowColumnIndex.RowIndex}");
-                return;
-            }
-
-            var record = dataGrid.View.Records[recordIndex].Data as AccountDisplayModel;
-
-            if (record != null)
-            {
-                // Проверка, является ли запись заголовком класса
-                if (record.DisplayText != null && (record.DisplayText.StartsWith("КЛАСС") || record.IsClassHeader))
-                {
-                    // Покрытие всей строки для заголовка класса
-                    int startColumnIndex = 1;
-                    int endColumnIndex = dataGrid.Columns.Count;
-
-                    e.Range = new CoveredCellInfo(e.RowColumnIndex.RowIndex, startColumnIndex, e.RowColumnIndex.RowIndex, endColumnIndex);
-                    e.Handled = true;
-                }
-                else
-                {
-                    // Обработка других случаев при необходимости
-                    Console.WriteLine();
-                }
-            }
-            else
-            {
-                Console.WriteLine();
-            }
-        }
-
     }
 }

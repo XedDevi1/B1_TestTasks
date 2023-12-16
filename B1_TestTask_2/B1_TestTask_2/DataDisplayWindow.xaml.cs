@@ -26,6 +26,25 @@ namespace B1_TestTask_2
         {
             InitializeComponent();
             DataContext = new DisplayDataService(fileId, sfDataGrid);
+            sfDataGrid.SelectionUnit = GridSelectionUnit.Cell;
+            sfDataGrid.NavigationMode = Syncfusion.UI.Xaml.Grid.NavigationMode.Cell;
+            sfDataGrid.QueryCoveredRange += sfDataGrid_QueryCoveredRange;
+        }
+
+        // Настройка обработки события QueryCoveredRange в SfDataGrid
+        private void sfDataGrid_QueryCoveredRange(object sender, Syncfusion.UI.Xaml.Grid.GridQueryCoveredRangeEventArgs e)
+        {
+            var dataGrid = sender as SfDataGrid;
+
+            var recordIndex = dataGrid.ResolveToRecordIndex(e.RowColumnIndex.RowIndex);
+
+            var record = dataGrid.View.Records[recordIndex].Data as AccountDisplayModel;
+            // Проверка, является ли запись заголовком класса
+            if (record.DisplayText != null && (record.DisplayText.StartsWith("КЛАСС") || record.IsClassHeader))
+            {
+                e.Range = new CoveredCellInfo(0, 6, e.RowColumnIndex.RowIndex, e.RowColumnIndex.RowIndex);
+                e.Handled = true;
+            }
         }
     }
 }

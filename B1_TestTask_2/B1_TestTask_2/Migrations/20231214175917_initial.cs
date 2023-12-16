@@ -88,12 +88,12 @@ namespace B1_TestTask_2.Migrations
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false),
-                    ActiveOpeningBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PassiveOpeningBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    DebitTurnover = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    LoanTurnover = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ActiveClosingBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PassiveClosingBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    ActiveOpeningBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    PassiveOpeningBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DebitTurnover = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    LoanTurnover = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    ActiveClosingBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    PassiveClosingBalance = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {

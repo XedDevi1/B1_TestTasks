@@ -9,22 +9,6 @@
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="DataDisplayWindow">
-    <Window.Resources>
-        <DataTemplate x:Key="ClassHeaderCellTemplate">
-            <TextBlock Text="{Binding DisplayText}" 
-                   HorizontalAlignment="Center" 
-                   VerticalAlignment="Center" 
-                   Background="LightGray" />
-        </DataTemplate>
-
-        <DataTemplate x:Key="NormalCellTemplate">
-            <TextBlock Text="{Binding DisplayText}" />
-        </DataTemplate>
-
-        <local1:ClassHeaderTemplateSelector x:Key="classHeaderTemplateSelector"
-                                       ClassHeaderTemplate="{StaticResource ClassHeaderCellTemplate}" 
-                                       NormalTemplate="{StaticResource NormalCellTemplate}" />
-    </Window.Resources>
     <Grid>
         <syncfusion:SfDataGrid x:Name="sfDataGrid"
                        AutoGenerateColumns="False"
@@ -47,8 +31,17 @@
                 </syncfusion:StackedHeaderRow>
             </syncfusion:SfDataGrid.StackedHeaderRows>
             <syncfusion:SfDataGrid.Columns>
-                <syncfusion:GridTemplateColumn MappingName="DisplayText" HeaderText="Б/сч" 
-                                           CellTemplateSelector="{StaticResource classHeaderTemplateSelector}"/>
+                <syncfusion:GridTextColumn MappingName="DisplayText" HeaderText="Б/сч">
+                    <syncfusion:GridTextColumn.CellStyle>
+                        <Style TargetType="syncfusion:GridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Record.IsClassHeader}" Value="True">
+                                    <Setter Property="Background" Value="Gray"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </syncfusion:GridTextColumn.CellStyle>
+                </syncfusion:GridTextColumn>
                 <syncfusion:GridTextColumn MappingName="ActiveOpeningBalance" HeaderText="Актив"/>
                 <syncfusion:GridTextColumn MappingName="PassiveOpeningBalance" HeaderText="Пассив"/>
                 <syncfusion:GridTextColumn MappingName="DebitTurnover" HeaderText="Дебет"/>
