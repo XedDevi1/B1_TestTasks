@@ -18,43 +18,43 @@ namespace B1_TestTask_1.Services
         private static readonly DateTime StartDate = DateTime.Now.AddYears(-5);
         private static readonly int DateRange = (DateTime.Now - StartDate).Days;
 
-        // Генерация случайной строки с использованием латинского и русского алфавитов
+        // Generate a random string using Latin and Russian alphabets, and random numbers.
         public static string GenerateString()
         {
-            var sb = new StringBuilder(64); // Предполагаемая длина строки
+            var sb = new StringBuilder(64);
 
-            // Генерация случайных символов из латинского алфавита
+            // Generate random characters from the Latin alphabet.
             for (int i = 0; i < 10; i++)
             {
                 sb.Append(LatinAlphabet[_random.Value.Next(LatinAlphabet.Length)]);
             }
             sb.Append("||");
 
-            // Генерация случайных символов из русского алфавита
+            // Generate random characters from the Russian alphabet.
             for (int i = 0; i < 10; i++)
             {
                 sb.Append(RussianAlphabet[_random.Value.Next(RussianAlphabet.Length)]);
             }
             sb.Append("||");
 
-            // Генерация случайного положительного четного целочисленного числа
+            // Generate a random positive even integer.
             int randomEvenIntegerNumber = _random.Value.Next(1, 50000000) * 2;
             sb.Append(randomEvenIntegerNumber);
             sb.Append("||");
 
-            // Генерация случайного положительного числа с 8 знаками после запятой
+            // Generate a random positive number with 8 decimal places.
             double randomDoubleNumber = Math.Round(_random.Value.NextDouble() * (20 - 1) + 1, 8);
             sb.Append(randomDoubleNumber);
             sb.Append("||");
 
-            // Вычисление случайной даты
+            // Calculate a random date.
             DateTime randomDate = StartDate.AddDays(_random.Value.Next(DateRange));
             sb.Insert(0, $"{randomDate:dd.MM.yyyy}||");
 
             return sb.ToString();
         }
 
-        // Асинхронная запись строк в файлы в параллельном режиме с использованием ConcurrentQueue
+        // Asynchronously write strings to files in parallel using ConcurrentQueue.
         public static async Task WriteToFileLoopAsync(string path)
         {
             var queues = new ConcurrentQueue<string>[100];
@@ -63,15 +63,15 @@ namespace B1_TestTask_1.Services
                 queues[i] = new ConcurrentQueue<string>();
             }
 
-            // Генерация строк и добавление их в соответствующие очереди
+            // Generate strings and add them to the corresponding queues.
             Parallel.For(0, 10000000, j =>
             {
-                string line = DataManagerService.GenerateString();
+                string line = GenerateString();
                 int fileIndex = j % 100;
                 queues[fileIndex].Enqueue(line);
             });
 
-            // Запись строк из очередей в файлы
+            // Write strings from queues to files.
             var tasks = new Task[100];
             for (int i = 0; i < 100; i++)
             {
@@ -79,47 +79,50 @@ namespace B1_TestTask_1.Services
                 tasks[fileIndex] = Task.Run(async () =>
                 {
                     string filePath = $"{path}test{fileIndex}.txt";
-                    using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
-                    using (var writer = new StreamWriter(fileStream, Encoding.UTF8))
-                    {
-                        while (queues[fileIndex].TryDequeue(out string line))
-                        {
-                            await writer.WriteLineAsync(line);
-                        }
-                    }
+                    await WriteLinesToFileAsync(filePath, queues[fileIndex]);
                 });
             }
 
-            // Ожидаем завершения всех асинхронных задач
+            // Wait for all asynchronous tasks to complete.
             await Task.WhenAll(tasks);
 
-            Console.WriteLine("Writing to files completed."); // Сообщение о завершении записи
+            Console.WriteLine("Writing to files completed.");
         }
 
-        // Объединение файлов и удаление строк, содержащих определенную подстроку
-        public static async Task MergeAllFiles(string path, string deleteStr)
+        // Merge files and remove lines containing a specific substring.
+        public static async Task MergeAllFilesAsync(string path, string deleteStr)
         {
-            var txtFiles = Directory.EnumerateFiles(path, "*.txt"); // Получение списка текстовых файлов
-            int totalRemovedLines = 0; // Счетчик удаленных строк
+            var resultFilePath = Path.Combine(path, "result", "result.txt");
+            int totalRemovedLines = 0;
 
-            // Создание результирующего файла
-            using (var output = File.Create(path + "result\\result.txt"))
+            using (var output = File.Create(resultFilePath))
             {
-                foreach (var txtFile in txtFiles)
+                foreach (var txtFilePath in Directory.EnumerateFiles(path, "*.txt"))
                 {
-                    var lines = File.ReadAllLines(txtFile); // Чтение строк из файла
-                    var newLines = lines.Where(line => !line.Contains(deleteStr)).ToArray(); // Удаление строк с подстрокой
-                    totalRemovedLines += lines.Length - newLines.Length; // Обновление счетчика удаленных строк
-                    File.WriteAllLines(txtFile, newLines); // Перезапись файла без удаленных строк
-                    using (var input = File.OpenRead(txtFile))
+                    using (var input = File.OpenRead(txtFilePath))
+                    using (var reader = new StreamReader(input))
+                    using (var writer = new StreamWriter(output, leaveOpen: true))
                     {
-                        await input.CopyToAsync(output); // Копирование содержимого файла в результирующий файл
+                        string line;
+                        while ((line = await reader.ReadLineAsync()) != null)
+                        {
+                            if (!line.Contains(deleteStr))
+                            {
+                                await writer.WriteLineAsync(line);
+                            }
+                            else
+                            {
+                                totalRemovedLines++;
+                            }
+                        }
                     }
                 }
             }
-            Console.WriteLine($"Общее количество удаленных строк: {totalRemovedLines}"); // Вывод количества удаленных строк
+
+            Console.WriteLine($"Total number of removed lines: {totalRemovedLines}");
         }
 
+        // Import merged file to the database.
         public static async Task ImportMergedFileToDatabase(string path)
         {
             try
@@ -131,32 +134,25 @@ namespace B1_TestTask_1.Services
 
                     int totalLines = File.ReadLines(mergedFilePath).Count();
                     int importedLines = 0;
-                    int batchSize = 1000; // Размер пакета для пакетной обработки
-                    List<Task> importTasks = new List<Task>();
+                    int batchSize = 1000;
 
                     using (StreamReader reader = new StreamReader(mergedFilePath))
                     {
                         string? line;
                         while ((line = await reader.ReadLineAsync()) != null)
                         {
-                            importTasks.Add(ParseAndAddToDatabaseAsync(dbContext, line));
+                            await ParseAndAddToDatabaseAsync(dbContext, line);
 
-                            if (importTasks.Count >= batchSize)
+                            if (importedLines % batchSize == 0)
                             {
-                                await Task.WhenAll(importTasks);
                                 await dbContext.SaveChangesAsync();
-                                importTasks.Clear();
                             }
 
                             importedLines++;
                             Console.WriteLine($"Imported {importedLines} of {totalLines} lines.");
                         }
 
-                        if (importTasks.Count > 0)
-                        {
-                            await Task.WhenAll(importTasks);
-                            await dbContext.SaveChangesAsync();
-                        }
+                        await dbContext.SaveChangesAsync();
                     }
 
                     Console.WriteLine("Data imported to the database successfully.");
@@ -168,20 +164,17 @@ namespace B1_TestTask_1.Services
             }
         }
 
-        // Метод для разбора строки и добавления данных в базу данных
+        // Parse a string and add data to the database asynchronously.
         private static async Task ParseAndAddToDatabaseAsync(AppDbContext dbContext, string line)
         {
-            // Разбиение строки на части
             string[] dataParts = line.Split(new[] { "||" }, StringSplitOptions.None);
 
-            // Преобразование данных из строки в соответствующие типы
             DateTime date = DateTime.ParseExact(dataParts[0], "dd.MM.yyyy", CultureInfo.InvariantCulture);
             string latinChars = dataParts[1];
             string russianChars = dataParts[2];
             int integerValue = int.Parse(dataParts[3]);
             double doubleValue = double.Parse(dataParts[4]);
 
-            // Создание объекта для добавления в базу данных
             var stringsData = new StringsData
             {
                 DateColumn = date,
@@ -191,26 +184,34 @@ namespace B1_TestTask_1.Services
                 DoubleColumn = doubleValue
             };
 
-            // Асинхронное добавление объекта в базу данных
             await dbContext.StringsData.AddAsync(stringsData);
         }
 
-        // Метод для обработки результатов вычислений
+        // Process the results of calculations.
         public static async Task ProcessCalculationResult()
         {
-            // Использование контекста базы данных
             using (var dbContext = new AppDbContext())
             {
-                // Выполнение вычислений в базе данных
                 var calculationResult = await dbContext.ExecuteCalculateSumAndMedian();
 
-                // Получение результатов вычислений
                 long sumOfIntegers = calculationResult.SumOfIntegers;
                 double medianOfDoubles = calculationResult.MedianOfDoubles;
 
-                // Вывод результатов вычислений
                 Console.WriteLine($"Sum of Integers: {sumOfIntegers}");
                 Console.WriteLine($"Median of Doubles: {medianOfDoubles}");
+            }
+        }
+
+        // Write lines from a ConcurrentQueue to a file asynchronously.
+        private static async Task WriteLinesToFileAsync(string filePath, ConcurrentQueue<string> queue)
+        {
+            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
+            using (var writer = new StreamWriter(fileStream, Encoding.UTF8))
+            {
+                while (queue.TryDequeue(out string line))
+                {
+                    await writer.WriteLineAsync(line);
+                }
             }
         }
     }
