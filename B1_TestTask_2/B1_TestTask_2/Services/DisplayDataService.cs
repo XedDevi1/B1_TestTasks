@@ -2,16 +2,7 @@
 using B1_TestTask_2.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Syncfusion.UI.Xaml.Grid;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
-using System.Windows.Threading;
-using System.Xml;
 
 namespace B1_TestTask_2.Services
 {
@@ -20,7 +11,6 @@ namespace B1_TestTask_2.Services
         public CollectionViewSource AccountsViewSource { get; set; }
         public SfDataGrid DataGrid { get; set; }
 
-        // Конструктор для DisplayDataService
         public DisplayDataService(int fileId, SfDataGrid dataGrid)
         {
             AccountsViewSource = new CollectionViewSource();
@@ -28,15 +18,15 @@ namespace B1_TestTask_2.Services
             LoadDataFromDatabase(fileId);
         }
 
-        // Загрузка данных из базы данных и заполнение SfDataGrid
+        // Load data from the database and populate SfDataGrid
         private void LoadDataFromDatabase(int fileId)
         {
             using (var context = new AppDbContext())
             {
-                // Получение информации о файле из базы данных
+                // Retrieve file information from the database
                 var fileInDb = context.Files.FirstOrDefault(f => f.Id == fileId);
 
-                // Получение данных по счетам с соответствующими связанными сущностями из базы данных
+                // Retrieve account data with associated entities from the database
                 var accounts = context.Accounts
                     .Include(a => a.AccountDetails)
                     .Include(a => a.Class)
@@ -44,10 +34,10 @@ namespace B1_TestTask_2.Services
                     .Where(a => a.Class.FileId == fileId)
                     .ToList();
 
-                // Преобразование данных по счетам в модели отображения
+                // Transform account data into display model
                 var accountDisplayModels = accounts.Select(account => new AccountDisplayModel
                 {
-                    // Отображение свойств счета на свойства модели отображения
+                    // Map account properties to display model properties
                     AccountNumber = account.AccountNumber,
                     ClassName = account.Class.ClassName,
                     AccountGroup = account.AccountGroups.AccountGroup,
@@ -64,22 +54,22 @@ namespace B1_TestTask_2.Services
 
                 var displayData = new List<AccountDisplayModel>();
 
-                // Группировка и суммирование моделей отображения счетов
+                // Group and sum up account display models
                 foreach (var classGroup in accountDisplayModels.GroupBy(a => a.ClassName).OrderBy(g => g.Key))
                 {
-                    // Добавление заголовка класса
+                    // Add class header
                     displayData.Add(new AccountDisplayModel { DisplayText = classGroup.Key, IsClassHeader = true });
 
-                    // Перебор групп счетов внутри класса
+                    // Iterate through account groups within the class
                     foreach (var group in classGroup.GroupBy(a => a.AccountGroup).OrderBy(g => g.Key))
                     {
-                        // Добавление отдельных счетов
+                        // Add individual accounts
                         displayData.AddRange(group.OrderBy(a => a.AccountNumber));
 
-                        // Добавление суммарной информации по группе счетов
+                        // Add summary information for the account group
                         var groupSummary = new AccountDisplayModel
                         {
-                            // Заполнение свойств суммарной информации по группе
+                            // Fill properties for the group summary
                             DisplayText = $"{group.Key}",
                             ActiveOpeningBalance = group.Sum(a => a.ActiveOpeningBalance),
                             PassiveOpeningBalance = group.Sum(a => a.PassiveOpeningBalance),
@@ -93,10 +83,10 @@ namespace B1_TestTask_2.Services
                         displayData.Add(groupSummary);
                     }
 
-                    // Добавление суммарной информации по классу
+                    // Add summary information for the class
                     var classSummary = new AccountDisplayModel
                     {
-                        // Заполнение свойств суммарной информации по классу
+                        // Fill properties for the class summary
                         DisplayText = "ПО КЛАССУ",
                         ActiveOpeningBalance = classGroup.Sum(a => a.ActiveOpeningBalance),
                         PassiveOpeningBalance = classGroup.Sum(a => a.PassiveOpeningBalance),
@@ -109,9 +99,11 @@ namespace B1_TestTask_2.Services
 
                     displayData.Add(classSummary);
                 }
-                // Установка данных отображения в качестве источника для CollectionViewSource
+
+                // Set display data as the source for CollectionViewSource
                 AccountsViewSource.Source = displayData;
             }
         }
     }
+
 }

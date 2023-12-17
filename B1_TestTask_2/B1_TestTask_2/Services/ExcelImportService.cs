@@ -1,13 +1,8 @@
 ﻿using B1_TestTask_2.Models;
 using B1_TestTask_2.Persistence;
 using OfficeOpenXml;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace B1_TestTask_2.Services
 {
@@ -15,32 +10,32 @@ namespace B1_TestTask_2.Services
     {
         public static void InsertExcelDataToDatabase(string excelPath, AppDbContext context)
         {
-            // Создаем объект файла и добавляем его в контекст
+            // Create a file object and add it to the context
             var file = new Files
             {
-                FileName = Path.GetFileName(excelPath) // Получаем название файла из пути
+                FileName = Path.GetFileName(excelPath) // Get the file name from the path
             };
-            context.Files.Add(file); // Добавляем файл в контекст
-            context.SaveChanges(); // Сохраняем изменения, чтобы получить Id для файла
+            context.Files.Add(file); // Add the file to the context
+            context.SaveChanges(); // Save changes to get the Id for the file
 
-            // Загружаем данные из Excel файла
+            // Load data from the Excel file
             using (var package = new ExcelPackage())
             {
                 using (var stream = File.OpenRead(excelPath))
                 {
                     package.Load(stream);
                 }
-                var ws = package.Workbook.Worksheets["Sheet1"];
+                var worksheet = package.Workbook.Worksheets["Sheet1"];
 
                 Classes currentClass = null;
                 Dictionary<int, AccountGroups> accountGroupsDict = new Dictionary<int, AccountGroups>();
 
-                // Итерируем по строкам в Excel
-                for (int rowNum = 9; rowNum <= ws.Dimension.End.Row; rowNum++)
+                // Iterate through rows in Excel
+                for (int rowNum = 9; rowNum <= worksheet.Dimension.End.Row; rowNum++)
                 {
-                    var firstCellValue = ws.Cells[rowNum, 1].Text.Trim();
+                    var firstCellValue = worksheet.Cells[rowNum, 1].Text.Trim();
 
-                    // Если первая ячейка начинается с "КЛАСС", создаем новый объект класса
+                    // If the first cell starts with "КЛАСС," create a new class object
                     if (firstCellValue.StartsWith("КЛАСС"))
                     {
                         currentClass = new Classes
@@ -54,13 +49,13 @@ namespace B1_TestTask_2.Services
                     else
                     {
                         int accountNumber;
-                        // Если первая ячейка представляет собой число и оно больше 1000
+                        // If the first cell is a number and it is greater than or equal to 1000
                         if (int.TryParse(firstCellValue, out accountNumber) && accountNumber >= 1000)
                         {
                             int accountGroupKey = accountNumber / 100;
 
                             AccountGroups accountGroup;
-                            // Если группа с таким ключом уже существует, используем ее, иначе создаем новую
+                            // If a group with the key already exists, use it; otherwise, create a new one
                             if (!accountGroupsDict.TryGetValue(accountGroupKey, out accountGroup))
                             {
                                 accountGroup = new AccountGroups
@@ -72,15 +67,15 @@ namespace B1_TestTask_2.Services
                                 accountGroupsDict[accountGroupKey] = accountGroup;
                             }
 
-                            // Создаем объект деталей счета и объект счета
+                            // Create an account details object and an account object
                             var accountDetails = new AccountDetails
                             {
-                                ActiveOpeningBalance = decimal.Parse(ws.Cells[rowNum, 2].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
-                                PassiveOpeningBalance = decimal.Parse(ws.Cells[rowNum, 3].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
-                                DebitTurnover = decimal.Parse(ws.Cells[rowNum, 4].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
-                                LoanTurnover = decimal.Parse(ws.Cells[rowNum, 5].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
-                                ActiveClosingBalance = decimal.Parse(ws.Cells[rowNum, 6].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
-                                PassiveClosingBalance = decimal.Parse(ws.Cells[rowNum, 7].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                ActiveOpeningBalance = decimal.Parse(worksheet.Cells[rowNum, 2].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                PassiveOpeningBalance = decimal.Parse(worksheet.Cells[rowNum, 3].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                DebitTurnover = decimal.Parse(worksheet.Cells[rowNum, 4].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                LoanTurnover = decimal.Parse(worksheet.Cells[rowNum, 5].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                ActiveClosingBalance = decimal.Parse(worksheet.Cells[rowNum, 6].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
+                                PassiveClosingBalance = decimal.Parse(worksheet.Cells[rowNum, 7].Text, NumberStyles.Number, CultureInfo.GetCultureInfo("ru-RU")),
                             };
 
                             var account = new Accounts
@@ -93,7 +88,7 @@ namespace B1_TestTask_2.Services
 
                             context.Accounts.Add(account);
                         }
-                        // Если первая ячейка содержит две цифры, или "ПО КЛАССУ", или "БАЛАНС", игнорируем строку
+                        // If the first cell contains two digits, or "ПО КЛАССУ," or "БАЛАНС," ignore the row
                         else if (firstCellValue.Length == 2 || firstCellValue == "ПО КЛАССУ" || firstCellValue == "БАЛАНС")
                         {
                             continue;
@@ -104,7 +99,7 @@ namespace B1_TestTask_2.Services
             }
         }
 
-        // Проверка наличия файла в базе данных по его имени
+        // Check if the file exists in the database based on its name
         public static bool FileExistsInDatabase(string fileName, AppDbContext context)
         {
             return context.Files.Any(f => f.FileName == fileName);

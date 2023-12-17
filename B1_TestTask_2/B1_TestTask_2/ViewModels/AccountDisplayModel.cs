@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace B1_TestTask_2.ViewModels
+﻿namespace B1_TestTask_2.ViewModels
 {
     public class AccountDisplayModel
     {
